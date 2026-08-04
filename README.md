@@ -224,14 +224,12 @@ The workflow automatically sends:
 
 # 📸 Screenshots
 
-Add screenshots here:
+![Workflow](screenshots/N8n1.png)
+![Gmail](screenshots/gmail-following.png)
+![Workflow](screenshots/gmails-admin.png)
+![Workflow](screenshots/gmails.png)
+![Workflow](screenshots/sheets.png)
 
-```
-/screenshots/workflow.png
-/screenshots/google-sheet.png
-/screenshots/proposal.pdf
-/screenshots/email.png
-```
 
 ---
 
