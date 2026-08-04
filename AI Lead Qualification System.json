@@ -1,0 +1,1237 @@
+{
+  "name": "AI Lead Qualification System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-qualification",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -752
+      ],
+      "id": "2546b2a7-c13c-4703-acab-b93b383d2db5",
+      "name": "Webhook",
+      "webhookId": "7cb7fc42-979e-49de-b473-8830cd389817"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a senior sales consultant for a software development agency.\n\nAnalyze each lead like an experienced business development manager.\n\nConsider:\n- Service requested\n- Budget\n- Company information\n- Project description\n\nScoring Rules:\n- High: Budget is More than $3000 and requirements are clear.\n- Warm: Budget is between $1000 and $3000 with reasonably clear requirements.\n- Low: Budget is below $1000 or requirements are unclear.\n\nReturn ONLY valid JSON.\n\nThe \"reason\" should be specific to the lead. Do not repeat the scoring rules.\n\nThe \"next_action\" should be a practical business action, not a generic sentence.\n\nExample:\n\n{\n  \"lead_score\": \"Warm\",\n  \"reason\": \"The lead is looking for website development with a mid-range budget and has provided enough information to begin a technical discussion.\",\n  \"next_action\": \"Schedule a discovery call within 24 hours, gather detailed requirements, and prepare a preliminary project estimate.\"\n}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "=SystemMessagePromptTemplate",
+              "message": "=You are a sales assistant.\n\nAnalyze this lead.\n\nName: {{ $json.name }}\nCompany: {{ $json.company }}\nService: {{ $json.service }}\nBudget: {{ $json.budget }}\nMessage: {{ $json.message }}\n\nReturn only JSON.\n\n{\n \"lead_score\":\"\",\n \"reason\":\"\",\n \"next_action\":\"\"\n}"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        160,
+        -752
+      ],
+      "id": "e4c43389-d019-42f4-85e4-45051a218f26",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -528
+      ],
+      "id": "f0b8ff87-2345-46a7-ae02-0096e817afd3",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "5eg0dEmBIdlvOrZR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = $json.text;\n\n// Remove markdown code fences if present\ntext = text.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\nconst result = JSON.parse(text);\n\n// Get the cleaned lead data from the previous Code node\nconst lead = $node[\"Code in JavaScript1\"].json;\n\n// Generate Proposal Number\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = String(now.getMonth() + 1).padStart(2, \"0\");\nconst day = String(now.getDate()).padStart(2, \"0\");\nconst random = Math.floor(100 + Math.random() * 900);\n\nconst proposalNumber = `FN-${year}${month}${day}-${random}`;\n\nreturn [{\n  json: {\n    name: lead.name,\n    email: lead.email,\n    phone: lead.phone,\n    company: lead.company,\n    service: lead.service,\n    budget: lead.budget,\n    message: lead.message,\n\n    lead_score: result.lead_score,\n    reason: result.reason,\n    next_action: result.next_action,\n\n    proposal_number: proposalNumber\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        -752
+      ],
+      "id": "cdf25cd9-9a6b-4231-9e6a-31b1c5f19d52",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "sendTo": "iframalik.903@gmail.com",
+        "subject": "=High Priority Lead - {{$json.Company}}",
+        "message": "=Hi Ifra,\n\nA new lead has been qualified by your AI Lead Qualification System.\n\n\n<h2>🚀 New {{$node[\"Code in JavaScript\"].json.lead_score}} Lead</h2>\n\n<p><strong>👤 Name:</strong> {{$node[\"Code in JavaScript\"].json.name}}</p>\n\n<p><strong>📧 Email:</strong> {{$node[\"Code in JavaScript\"].json.email}}</p>\n\n<p><strong>📱 Phone:</strong> {{$node[\"Code in JavaScript\"].json.phone}}</p>\n\n<p><strong>🏢 Company:</strong> {{$node[\"Code in JavaScript\"].json.company}}</p>\n\n<p><strong>💼 Service:</strong> {{$node[\"Code in JavaScript\"].json.service}}</p>\n\n<p><strong>💰 Budget:</strong> {{$node[\"Code in JavaScript\"].json.budget}}</p>\n\n<p><strong>📝 Project:</strong><br>{{$node[\"Code in JavaScript\"].json.message}}</p>\n\n<p><strong>⭐ Lead Score:</strong> {{$node[\"Code in JavaScript\"].json.lead_score}}</p>\n\n<p><strong>📋 Reason:</strong><br>{{$node[\"Code in JavaScript\"].json.reason}}</p>\n\n<p><strong>🎯 Next Action:</strong><br>{{$node[\"Code in JavaScript\"].json.next_action}}</p>\n<p>The lead has also been saved to your Google Sheets CRM.</p>\n\n<p><em>This email was sent automatically by your AI Lead Qualification System.</em></p>\n\n\n\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1856,
+        -752
+      ],
+      "id": "e68fd68f-c623-4d6f-8e96-9f6ef30ffb59",
+      "name": "Send a message",
+      "webhookId": "f12ca8ef-5e6e-4f67-bcbf-91c3ba16b98b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXAZn1YNEE7YB39F",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fields = $json.body.data.fields;\n\nconst lead = {};\nconst optionMap = {};\n\n// Build option ID -> text map\nfor (const field of fields) {\n  if (field.options) {\n    for (const option of field.options) {\n      optionMap[option.id] = option.text;\n    }\n  }\n}\n\n// Extract values\nfor (const field of fields) {\n  let value = field.value;\n\n  if (Array.isArray(value)) {\n    value = value.map(v => optionMap[v] || v).join(\", \");\n  }\n\n  lead[field.label] = value;\n}\n\nreturn [{\n  json: {\n    name: lead[\"Full Name\"] || \"\",\n    email: lead[\"Email Address\"] || \"\",\n    phone: lead[\"Phone number\"] || \"\",\n    company: lead[\"Company Name\"] || \"\",\n    service: lead[\"Which service do you need?\"] || \"\",\n    budget: lead[\"Estimated Budget\"] || \"\",\n    message: lead[\"Tell us about your project\"] || \"\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -752
+      ],
+      "id": "be2dc2b3-deec-496c-9004-8422636d7cd4",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "24627f33-cc88-43b6-8fce-0932ddfc8e57",
+              "leftValue": "={{$json.lead_score}}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        736,
+        -752
+      ],
+      "id": "a560315a-81d9-4348-9be9-8f90b5085c5f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6089f0e2-c78d-4c70-8c98-a9e05bff4979",
+              "leftValue": "={{$json.lead_score}}",
+              "rightValue": "Warm",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        -656
+      ],
+      "id": "7466a422-7e57-402a-bbd8-8db84ea9c8b1",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b2977c7-440d-4433-a685-8fe36ade8538",
+              "name": "priority",
+              "value": "High",
+              "type": "string"
+            },
+            {
+              "id": "dd5cce77-f3ee-423d-a0a0-14576dc26756",
+              "name": "subject",
+              "value": "🔥 High Priority Lead",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        -944
+      ],
+      "id": "8d291dce-5bfd-4c3b-a76d-95f4cacb632e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "adc5c2b7-7c73-4068-bbf5-1634d38aff39",
+              "name": "priority",
+              "value": "Warm",
+              "type": "string"
+            },
+            {
+              "id": "5934b8d4-acf1-42b5-91ee-17baa81aeb7a",
+              "name": "subject",
+              "value": "🟡 Warm Lead",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        -752
+      ],
+      "id": "9305d28f-4ad0-4d68-946f-159c206352b4",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "43b6e203-1564-43b4-9e0e-3a2bfef4aaa8",
+              "name": "priority",
+              "value": "Low",
+              "type": "string"
+            },
+            {
+              "id": "c0ff4296-bbec-4562-9ea2-5c6f2aaf4b24",
+              "name": "subject",
+              "value": "🔵 Low Lead",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        -560
+      ],
+      "id": "a26e0e95-2cf3-4adb-ba7c-83e0deab99a0",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1408,
+        -768
+      ],
+      "id": "0c5587dc-b5aa-411c-afa3-c2321375aada",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1zqWZrGjuxKHBWVVfp3udbZcOfIQrTF__3MGmsq7eSYA",
+          "mode": "list",
+          "cachedResultName": "AI Lead CRM",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zqWZrGjuxKHBWVVfp3udbZcOfIQrTF__3MGmsq7eSYA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 43817604,
+          "mode": "list",
+          "cachedResultName": "Dashboard Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zqWZrGjuxKHBWVVfp3udbZcOfIQrTF__3MGmsq7eSYA/edit#gid=43817604"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{$json.email}}",
+            "Name": "={{$json.name}}",
+            "Phone": "={{$json.phone}}",
+            "Company": "={{$json.company}}",
+            "Service": "={{$json.service}}",
+            "Budget": "={{$json.budget}}",
+            "Lead Score": "={{$json.lead_score}}",
+            "Reason": "={{$json.reason}}",
+            "Next Action": "={{$json.next_action}}",
+            "Date": "={{$now.toFormat('yyyy-MM-dd HH:mm:ss')}}",
+            "Proposal Number": "={{$json.proposal_number}}",
+            "Proposal Sent": "=Yes",
+            "Meeting Scheduled": "=No",
+            "Meeting Completed": "=No",
+            "Converted": "=No"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead Score",
+              "displayName": "Lead Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Action",
+              "displayName": "Next Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Proposal Number",
+              "displayName": "Proposal Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Proposal Sent",
+              "displayName": "Proposal Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Meeting Scheduled",
+              "displayName": "Meeting Scheduled",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Meeting Completed",
+              "displayName": "Meeting Completed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Converted",
+              "displayName": "Converted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1632,
+        -752
+      ],
+      "id": "2f57b178-9c0a-4b08-ada7-e448002d1dc2",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "ptoMPvOMxPoag0Z6",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        -528
+      ],
+      "id": "8ea8c686-d73e-4ca4-ade7-d5907e0678c3",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "pAh6tcJiz6NcrUUN",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node[\"Code in JavaScript\"].json.email}}",
+        "subject": "=Your Project Proposal - FlowNova",
+        "message": "=<h2>Hello {{$node[\"Code in JavaScript\"].json.name}},</h2>\n<p>\n<a href={{$node[\"Upload file\"].json.webViewLink}}>\nView Proposal\n</a>\n</p>\n<p>Thank you for contacting <strong>FlowNova</strong>.</p>\n\n<p>Based on the information you shared, we have prepared your initial project proposal.</p>\n\n<p>Please find the proposal attached as a PDF.</p>\n\n<p>If you have any questions, simply reply to this email.</p>\n\n<br>\n\n<p>Best Regards,</p>\n\n<p><strong>FlowNova</strong></p>",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {
+                "property": "=data"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3776,
+        -752
+      ],
+      "id": "39a26627-482e-40b9-9837-73edfdb4534a",
+      "name": "Send a message1",
+      "webhookId": "c8f3b208-6d47-40cb-a1f2-830acd961799",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXAZn1YNEE7YB39F",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a senior software solutions consultant.\n\nCreate a professional project proposal.\n\nClient Name:\n{{$node[\"Code in JavaScript\"].json.name}}\n\nCompany:\n{{$node[\"Code in JavaScript\"].json.company}}\n\nEmail:\n{{$node[\"Code in JavaScript\"].json.email}}\n\nPhone:\n{{$node[\"Code in JavaScript\"].json.phone}}\n\nRequested Service:\n{{$node[\"Code in JavaScript\"].json.service}}\n\nBudget:\n{{$node[\"Code in JavaScript\"].json.budget}}\n\nProject Description:\n{{$node[\"Code in JavaScript\"].json.message}}\n\nLead Score:\n{{$node[\"Code in JavaScript\"].json.lead_score}}\n\nCreate a proposal with these sections:\n\n1. Client Information\n2. Project Overview\n3. Scope of Work\n4. Deliverables\n5. Estimated Timeline\n6. Estimated Budget\n7. Recommended Next Steps\n\nBe specific using the client's information.\n\nReturn professional HTML only.\n\nUse:\n- H1 title\n- H2 section headings\n- Bullet lists\n- A blue header\n- A professional footer\n\nDo not return Markdown.\nDo not return plain text.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        2080,
+        -752
+      ],
+      "id": "c4762271-89ba-463e-a68a-b4c18d7fad35",
+      "name": "AI Proposal Generator"
+    },
+    {
+      "parameters": {
+        "amount": "={{ 1}}",
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        4000,
+        -752
+      ],
+      "id": "3b7e0e9e-6e14-49a6-b0e0-c1d4655dc6d7",
+      "name": "Wait",
+      "webhookId": "a8da670a-a2a7-4550-ac2a-7e7547880127"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an experienced Business Development Executive for FlowNova.\n\nWrite a professional follow-up email.\n\nClient Name:\n{{$node[\"Code in JavaScript\"].json.name}}\n\nCompany:\n{{$node[\"Code in JavaScript\"].json.company}}\n\nService:\n{{$node[\"Code in JavaScript\"].json.service}}\n\nProject:\n{{$node[\"Code in JavaScript\"].json.message}}\n\nRules:\n- Address the client by first name.\n- Thank them for their interest.\n- Mention the requested service naturally.\n- Ask if they have any questions about the proposal.\n- Invite them to schedule a free consultation call.\n- Keep the email between 100 and 150 words.\n- End the email with:\n\nBest regards,\n\nIfra Malik\nFounder, FlowNova\n\nReturn HTML only.\nDo not use markdown.\nDo not include placeholders like [Your Name].",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        4224,
+        -752
+      ],
+      "id": "8ff29dfc-29c1-496c-877d-1048d8f5a81d",
+      "name": "AI Follow-up Writer"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        4304,
+        -528
+      ],
+      "id": "77f3b821-68ee-46da-9067-11f36ee46b9a",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "pAh6tcJiz6NcrUUN",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node[\"Code in JavaScript\"].json.email}}",
+        "subject": "=Just following up on your project inquiry",
+        "message": "={{$node[\"AI Follow-up Writer\"].json.text}}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        4576,
+        -752
+      ],
+      "id": "bb6963be-d84d-4a63-b05d-4b61bb0cb248",
+      "name": "Send a message2",
+      "webhookId": "9f1bd580-2e3f-4ceb-b455-8c9f363816d8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXAZn1YNEE7YB39F",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "ifra00231@gmail.com",
+          "mode": "list",
+          "cachedResultName": "ifra00231@gmail.com"
+        },
+        "start": "={{ DateTime.now().setZone('Asia/Karachi').plus({ days: 1 }).set({ hour: 15, minute: 0 }).toISO() }}",
+        "end": "={{ DateTime.now().setZone('Asia/Karachi').plus({ days: 1 }).set({ hour: 15, minute: 30 }).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            "={{$node[\"Code in JavaScript\"].json.email}}"
+          ],
+          "conferenceDataUi": {
+            "conferenceDataValues": {
+              "conferenceSolution": "=conferenceData.entryPoints[0].uri"
+            }
+          },
+          "description": "=Client: {{$node[\"Code in JavaScript\"].json.name}}\n\nCompany: {{$node[\"Code in JavaScript\"].json.company}}\n\nEmail: {{$node[\"Code in JavaScript\"].json.email}}\n\nPhone: {{$node[\"Code in JavaScript\"].json.phone}}\n\nService: {{$node[\"Code in JavaScript\"].json.service}}\n\nBudget: {{$node[\"Code in JavaScript\"].json.budget}}\n\nProject:\n{{$node[\"Code in JavaScript\"].json.message}}",
+          "summary": "=Discovery Call - {{$node[\"Code in JavaScript\"].json.name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        5024,
+        -752
+      ],
+      "id": "cef013f8-3ccf-431d-87f8-bd8add3e808d",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Ih6uZDsDrzA7QEX0",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node[\"Code in JavaScript\"].json.email}}",
+        "subject": "=Your Discovery Call Has Been Scheduled",
+        "message": "=<h2>🎉 Your Discovery Call is Confirmed!</h2>\n\n<p>Hello {{$node[\"Code in JavaScript\"].json.name}},</p>\n\n<p>Thank you for choosing <strong>FlowNova</strong>.</p>\n\n<p>Your discovery call has been successfully scheduled. We're excited to learn more about your project and discuss how we can help bring your ideas to life.</p>\n\n<h3>📅 Meeting Details</h3>\n\n<ul>\n  <li><strong>Date:</strong> Tomorrow</li>\n  <li><strong>Duration:</strong> 30 Minutes</li>\n</ul>\n\n<p><strong>🔗 Google Meet:</strong><br>\n<a href=\"{{$node[\"Create an event\"].json.conferenceData.entryPoints[0].uri}}\">\nJoin Meeting\n</a></p>\n\n<h3>We'll discuss:</h3>\n\n<ul>\n  <li>Your project requirements</li>\n  <li>Recommended solution and technology stack</li>\n  <li>Timeline and milestones</li>\n  <li>Budget and next steps</li>\n</ul>\n\n<p>If you need to reschedule or have any questions before the meeting, simply reply to this email.</p>\n\n<p>We look forward to speaking with you!</p>\n\n<p>\nBest regards,<br>\n<strong>Ifra Malik</strong><br>\nFounder, FlowNova\n</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        5248,
+        -752
+      ],
+      "id": "597f9e09-18f6-4454-9eb9-29870b28077a",
+      "name": "Send a message3",
+      "webhookId": "0de0d6cc-8ee7-4b6d-a8de-56386129a869",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "WXAZn1YNEE7YB39F",
+          "name": "Gmail account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.pdf.co/v1/pdf/convert/from/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "=x-api-key",
+              "value": "=ifra00231@gmail.com_ilaHREV06dVZjUC47ja6QzLiXdLjFH3BjKGnFowPzFeyX7qNgciu3RrTWSj9UcCZ"
+            },
+            {
+              "name": "=Content-Type",
+              "value": "=application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=name",
+              "value": "=Proposal-{{$json.proposal_number}}.pdf"
+            },
+            {
+              "name": "=paperSize",
+              "value": "=A4"
+            },
+            {
+              "name": "=orientation",
+              "value": "=Portrait"
+            },
+            {
+              "name": "=printBackground",
+              "value": "=true"
+            },
+            {
+              "name": "=html",
+              "value": "={{$node[\"AI Proposal Generator\"].json.text}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2432,
+        -752
+      ],
+      "id": "cfeb3936-35f9-4b03-88d7-a3c0106c5a34",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2656,
+        -896
+      ],
+      "id": "811bef05-dcc1-45da-bc3e-efd48addcf75",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7d57196f-7bf0-4659-9960-237a8f9376ac",
+              "leftValue": "={{$node[\"Code in JavaScript\"].json.lead_score}}",
+              "rightValue": "High",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4800,
+        -752
+      ],
+      "id": "f6ebebcb-392c-4a9a-8f1c-253097dee1f2",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "name": "=Proposal-{{$node[\"Code in JavaScript\"].json.proposal_number}}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "root",
+          "cachedResultName": "/ (Root folder)"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2976,
+        -1088
+      ],
+      "id": "dbb1042d-d356-4ab9-a960-bf264f5865aa",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "n8pJm6K0027wtPI8",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{$json.id}}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3200,
+        -1216
+      ],
+      "id": "07f63160-d36d-46cc-bfbe-e68002c209a1",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "n8pJm6K0027wtPI8",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2880,
+        -752
+      ],
+      "id": "f3ec876c-21f1-464a-85ca-3e6d69e036e9",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3520,
+        -912
+      ],
+      "id": "4a4e0b02-5cbe-4a37-b589-7cb49347c842",
+      "name": "Merge2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "AI Proposal Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Proposal Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Proposal Generator": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "AI Follow-up Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Follow-up Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Follow-up Writer": {
+      "main": [
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message2": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Send a message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "3a0e3a96-ee94-414c-9082-9c1c1d43841c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0844b900098aff32789a13db22edb580175af36eb7e86e90be0d6569af541956"
+  },
+  "id": "D4J0eCT50QJUJknQ",
+  "tags": []
+}
